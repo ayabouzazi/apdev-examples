@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<http:listener-config name="HTTPListenerConfig" doc:name="HTTP Listener config" doc:id="c942eefd-d838-4c08-bd8c-6aff3110ef6a" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTPRequestConfiguration" doc:name="HTTP Request configuration" doc:id="29e8b67e-b82f-4b26-8371-a305a5cf1d10" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<vm:config name="VMConfig" doc:name="VM Config" doc:id="751ab9c4-3b7d-492c-b9b0-b8b45b3d02eb" >
+		<vm:queues >
+			<vm:queue queueName="GoodByeQueue" queueType="PERSISTENT" />
+		</vm:queues>
+	</vm:config>
+	<flow name="Hello" doc:id="78b971a0-9fe0-4de6-9464-227bf79d0af0" >
+		<http:listener doc:name="GET /hello" doc:id="4357bfaf-3eb8-4427-94aa-87789c0baee4" config-ref="HTTPListenerConfig" path="/hello"/>
+		<set-payload value="Hello !!" doc:name="Set Payload" doc:id="34f55d8c-ed66-46de-b914-d9174d567788" />
+		<vm:publish doc:name="Publish To GoodByeQueue" doc:id="8a9f619e-6375-45e4-8492-e02a763385ac" config-ref="VMConfig" queueName="GoodByeQueue">
+			<vm:content ><![CDATA[GoodByeQueue]]></vm:content>
+		</vm:publish>
+		<logger level="INFO" doc:name="Logger" doc:id="84296ab1-2b3a-4092-9809-562b626c0a3a" />
+	</flow>
+	<flow name="Goodbye" doc:id="6a3d05bd-f659-4fd6-97ac-5492b6dd0d57" >
+		<vm:listener doc:name="Listener" doc:id="e944b24e-82e9-4353-ad04-03a716917cd5" config-ref="VMConfig" queueName="GoodByeQueue"/>
+		<set-payload value='#["Goodbye " ++ (attributes.queryParams.firstname default "")]' doc:name="Set Payload" doc:id="4f4bc2df-6800-4622-8d22-d7f773ac3251" />
+		<logger level="INFO" doc:name="Logger" doc:id="684e612a-0b4a-4af5-b87c-087abf21bdf4" />
+	</flow>
+</mule>

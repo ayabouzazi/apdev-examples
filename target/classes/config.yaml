@@ -1,0 +1,10 @@
+file:
+  dir: "C:/mule/work"
+  
+db:
+  host: "iltdb.mule-training.com"
+  port: "3306"
+  user: "mule"
+  password: "mule"
+  database: "training"
+  

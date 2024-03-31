@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="AccountsCSV" doc:id="d4a9b0c4-4ca6-4d81-be91-d99ae558d019" >
+		<file:listener doc:name="On New File" doc:id="468778b3-f533-4fbf-8aae-2f4f9671e309" config-ref="FileConfig" directory="input" moveToDirectory="output">
+			<scheduling-strategy >
+				<fixed-frequency frequency="10" timeUnit="SECONDS"/>
+			</scheduling-strategy>
+			<file:matcher />
+		</file:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="e2c99bef-2eb9-40d9-8771-c81c4399ae3c" message="#[output application/json --- payload]"/>
+	</flow>
+	<flow name="SyncDBAccounts" doc:id="f9a2a769-5456-4c3c-af1a-7a6f6662909e" >
+		<scheduler doc:name="Scheduler 20s" doc:id="1b420cb1-36fb-457c-941d-326786189a27" >
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</scheduler>
+		<os:retrieve doc:name="Retrieve WaterMark" doc:id="e94b8646-2708-40ae-8594-219e21dc6deb" key="lastAccountID" target="lastAccountID">
+			<os:default-value ><![CDATA[63]]></os:default-value>
+		</os:retrieve>
+		<db:select doc:name="Select" doc:id="7dd6e74b-2e4d-44a2-a1ce-bb1d4fbc6984" config-ref="MySQLDatabaseConfig">
+			<db:sql ><![CDATA[SELECT * FROM accounts WHERE accountID > :lastAccountID]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	 lastAccountID: vars.lastAccountID
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="1a946325-fe5d-4ebd-bbfb-35620c536ded" >
+			<when expression="#[!isEmpty(payload)]">
+				<os:store doc:name="Store" doc:id="9340b999-0662-48f3-9831-f3b9c037a123" key="lastAccountID">
+					<os:value ><![CDATA[#[max(payload.*accountID)]]]></os:value>
+				</os:store>
+				<logger level="INFO" doc:name="Logger" doc:id="f7aa5ee6-b4b2-4dcc-963c-ce92fdfbf816" message="#[output application/json --- payload]" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="9706be80-dc03-4342-9ac2-05a1bf884e91" message='#["\nNo data..."]'/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
